@@ -1,866 +1,2749 @@
-"use strict";
-
 /*
-  COURT
-  Real-life basketball 1v1 prototype
+====================================================
+HOOPX
+Real Players. Real Courts. Real Games.
+====================================================
 
-  Version 1:
-  - Local player profile
-  - Demo players
-  - Challenges
-  - Match results
-  - XP / levels
-  - Stats
-  - Achievements
-  - Leaderboard
+CURRENT VERSION:
+- Browser-only prototype
+- No fake/demo players
+- Local accounts
+- Player profiles
+- 1v1 challenges
+- Results
+- XP
+- Levels
+- Skills
+- Achievements
+- Leaderboard
 
-  IMPORTANT:
-  This version stores data in localStorage.
-  Later we will replace this with Supabase so multiple
-  real players can use the same database.
+IMPORTANT:
+This is NOT production authentication.
+
+Passwords are stored locally only for this prototype.
+When we connect Supabase, authentication will be
+handled securely by Supabase Auth.
+====================================================
 */
 
-const STORAGE_KEY = "court_basketball_v1";
 
-const demoPlayers = [
+/* ================= STORAGE ================= */
+
+const STORAGE_KEY = "hoopx_v2";
+
+
+/* ================= DEFAULT SKILLS ================= */
+
+const defaultSkills = {
+
+  shooting: 50,
+
+  handles: 50,
+
+  defense: 50,
+
+  athleticism: 50,
+
+  finishing: 50
+
+};
+
+
+/* ================= ACHIEVEMENTS ================= */
+
+const achievements = [
+
   {
-    id: 1,
-    username: "Jay",
-    level: 12,
-    xp: 820,
-    wins: 24,
-    losses: 8,
-    streak: 5,
-    location: "Nearby",
-    rank: 2,
-    skills: {
-      shooting: 84,
-      speed: 78,
-      handling: 81,
-      defense: 76,
-      strength: 72,
-      vertical: 79
-    }
+    id: "first-game",
+
+    icon: "🏀",
+
+    title: "First Bucket",
+
+    desc: "Play your first game.",
+
+    check: player =>
+      player.wins + player.losses >= 1
   },
+
   {
-    id: 2,
-    username: "Kairo",
-    level: 9,
-    xp: 570,
-    wins: 15,
-    losses: 10,
-    streak: 2,
-    location: "Nearby",
-    rank: 5,
-    skills: {
-      shooting: 79,
-      speed: 86,
-      handling: 75,
-      defense: 70,
-      strength: 68,
-      vertical: 91
-    }
+    id: "first-win",
+
+    icon: "🔥",
+
+    title: "First Win",
+
+    desc: "Win your first 1v1.",
+
+    check: player =>
+      player.wins >= 1
   },
+
   {
-    id: 3,
-    username: "Ace",
-    level: 16,
-    xp: 1420,
-    wins: 38,
-    losses: 6,
-    streak: 11,
-    location: "Nearby",
-    rank: 1,
-    skills: {
-      shooting: 94,
-      speed: 88,
-      handling: 92,
-      defense: 85,
-      strength: 82,
-      vertical: 90
-    }
+    id: "three-streak",
+
+    icon: "⚡",
+
+    title: "Heat Check",
+
+    desc: "Reach a 3-game win streak.",
+
+    check: player =>
+      player.streak >= 3
   },
+
   {
-    id: 4,
-    username: "Mika",
-    level: 7,
-    xp: 390,
-    wins: 9,
-    losses: 9,
-    streak: 1,
-    location: "Online",
-    rank: 8,
-    skills: {
-      shooting: 71,
-      speed: 73,
-      handling: 77,
-      defense: 74,
-      strength: 66,
-      vertical: 75
-    }
-  },
-  {
-    id: 5,
-    username: "Zero",
-    level: 14,
-    xp: 1100,
-    wins: 31,
-    losses: 12,
-    streak: 4,
-    location: "Nearby",
-    rank: 3,
-    skills: {
-      shooting: 88,
-      speed: 91,
-      handling: 86,
-      defense: 80,
-      strength: 77,
-      vertical: 85
-    }
+    id: "five-wins",
+
+    icon: "👑",
+
+    title: "Five Up",
+
+    desc: "Reach 5 wins.",
+
+    check: player =>
+      player.wins >= 5
   }
+
 ];
 
-let state = loadState();
-let selectedOpponent = null;
-let currentFilter = "all";
 
-function defaultState() {
+/* ================= APP STATE ================= */
+
+let state = loadState();
+
+let currentPage = "home";
+
+let authMode = "signup";
+
+let toastTimer;
+
+
+/* ================= STATE ================= */
+
+function freshState() {
+
   return {
-    player: {
-      username: "Rookie",
-      level: 1,
-      xp: 0,
-      wins: 0,
-      losses: 0,
-      games: 0,
-      streak: 0,
-      bestStreak: 0,
-      skills: {
-        shooting: 50,
-        speed: 50,
-        handling: 50,
-        defense: 50,
-        strength: 50,
-        vertical: 50
-      }
-    },
+
+    users: [],
 
     challenges: [],
 
-    matches: []
+    currentUserId: null
+
   };
+
 }
+
 
 function loadState() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
 
-    if (!saved) {
-      return defaultState();
+  try {
+
+    const saved =
+      JSON.parse(
+        localStorage.getItem(STORAGE_KEY)
+      );
+
+    if (
+      saved &&
+      Array.isArray(saved.users)
+    ) {
+
+      return saved;
+
     }
 
-    const parsed = JSON.parse(saved);
+  } catch (_) {}
 
-    return {
-      ...defaultState(),
-      ...parsed,
-      player: {
-        ...defaultState().player,
-        ...(parsed.player || {})
-      }
-    };
-  } catch (error) {
-    console.warn("Could not load save:", error);
-    return defaultState();
-  }
+  return freshState();
+
 }
+
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify(state)
+  );
+
 }
 
-function xpForNextLevel(level) {
-  return 100 + ((level - 1) * 50);
+
+/* ================= USER ================= */
+
+function currentUser() {
+
+  return state.users.find(
+    user =>
+      user.id === state.currentUserId
+  ) || null;
+
 }
 
-function totalXPNeeded(level) {
-  let total = 0;
 
-  for (let i = 1; i < level; i++) {
-    total += xpForNextLevel(i);
+function getUser(userId) {
+
+  return state.users.find(
+    user => user.id === userId
+  );
+
+}
+
+
+/* ================= ID ================= */
+
+function generateId() {
+
+  if (
+    typeof crypto !== "undefined" &&
+    crypto.randomUUID
+  ) {
+
+    return crypto.randomUUID();
+
   }
 
-  return total;
+  return (
+    Date.now().toString(36) +
+    Math.random()
+      .toString(36)
+      .slice(2)
+  );
+
 }
 
-function getLevelFromXP(xp) {
-  let level = 1;
-  let remaining = xp;
 
-  while (remaining >= xpForNextLevel(level)) {
-    remaining -= xpForNextLevel(level);
-    level++;
-  }
+/* ================= SECURITY HELPERS ================= */
+
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replace(
+      /[&<>"']/g,
+      character => ({
+
+        "&": "&amp;",
+
+        "<": "&lt;",
+
+        ">": "&gt;",
+
+        '"': "&quot;",
+
+        "'": "&#039;"
+
+      })[character]
+    );
+
+}
+
+
+/* ================= USERNAME ================= */
+
+function normalizeUsername(value) {
+
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(
+      /[^a-z0-9_]/g,
+      ""
+    );
+
+}
+
+
+/* ================= INITIALS ================= */
+
+function initials(name) {
+
+  return (
+    name
+      ?.trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map(word => word[0])
+      .join("")
+      .toUpperCase()
+      || "H"
+  );
+
+}
+
+
+/* ================= LEVEL SYSTEM ================= */
+
+function levelForXP(xp) {
+
+  return Math.max(
+    1,
+    Math.floor(xp / 500) + 1
+  );
+
+}
+
+
+function XPProgress(xp) {
+
+  const level =
+    levelForXP(xp);
+
+  const levelStart =
+    (level - 1) * 500;
+
+  const current =
+    xp - levelStart;
+
+  const needed = 500;
+
+  const percent =
+    Math.min(
+      100,
+      (current / needed) * 100
+    );
 
   return {
+
     level,
-    currentXP: remaining,
-    requiredXP: xpForNextLevel(level)
+
+    current,
+
+    needed,
+
+    percent
+
   };
+
 }
 
-function addXP(amount) {
-  state.player.xp += amount;
 
-  const before = state.player.level;
-  const info = getLevelFromXP(state.player.xp);
-
-  state.player.level = info.level;
-
-  if (info.level > before) {
-    showToast(`🎉 LEVEL UP! You reached Level ${info.level}`);
-  }
-
-  saveState();
-  renderAll();
-}
+/* ================= TOAST ================= */
 
 function showToast(message) {
-  const toast = document.getElementById("toast");
+
+  const toast =
+    document.getElementById("toast");
 
   toast.textContent = message;
+
   toast.classList.add("show");
 
-  clearTimeout(window.toastTimer);
+  clearTimeout(toastTimer);
 
-  window.toastTimer = setTimeout(() => {
-    toast.classList.remove("show");
-  }, 3000);
-}
-
-/* ---------------- NAVIGATION ---------------- */
-
-function setupNavigation() {
-  const navButtons = document.querySelectorAll("[data-page]");
-
-  navButtons.forEach(button => {
-    button.addEventListener("click", () => {
-      showPage(button.dataset.page);
-    });
-  });
-}
-
-function showPage(pageId) {
-  document.querySelectorAll(".page").forEach(page => {
-    page.classList.remove("active");
-  });
-
-  const page = document.getElementById(pageId);
-
-  if (page) {
-    page.classList.add("active");
-  }
-
-  document.querySelectorAll(".nav-item").forEach(button => {
-    button.classList.toggle(
-      "active",
-      button.dataset.page === pageId
+  toastTimer =
+    setTimeout(
+      () =>
+        toast.classList.remove("show"),
+      3000
     );
-  });
+
+}
+
+
+/* ================= NAVIGATION ================= */
+
+function navigate(page) {
+
+  currentPage = page;
+
+  document
+    .querySelectorAll(".page")
+    .forEach(pageElement => {
+
+      pageElement.classList.remove(
+        "active"
+      );
+
+    });
+
+
+  document
+    .getElementById(`page-${page}`)
+    ?.classList.add("active");
+
+
+  document
+    .querySelectorAll(".nav-item")
+    .forEach(button => {
+
+      button.classList.toggle(
+        "active",
+        button.dataset.page === page
+      );
+
+    });
+
+
+  render();
 
   window.scrollTo({
+
     top: 0,
+
     behavior: "smooth"
+
   });
 
-  renderAll();
 }
 
-/* ---------------- HOME ---------------- */
 
-function renderHome() {
-  const p = state.player;
-  const info = getLevelFromXP(p.xp);
+/* ================= AUTH REQUIRED ================= */
 
-  document.getElementById("homeUsername").textContent = p.username;
-  document.getElementById("homeLevel").textContent =
-    `Level ${info.level} • ${getRankName(info.level)}`;
+function requireUser() {
 
-  document.getElementById("homeXP").textContent =
-    `${info.currentXP} XP`;
+  if (!currentUser()) {
 
-  document.getElementById("homeNextXP").textContent =
-    `${info.requiredXP} XP`;
+    showToast(
+      "Create a HOOPX account first."
+    );
 
-  const percentage =
-    Math.min(100, (info.currentXP / info.requiredXP) * 100);
+    navigate("auth");
 
-  document.getElementById("homeXPBar").style.width =
-    `${percentage}%`;
+    return false;
 
-  document.getElementById("headerLevel").textContent =
-    `LVL ${info.level}`;
+  }
 
-  document.getElementById("headerXPBar").style.width =
-    `${percentage}%`;
+  return true;
 
-  const activeChallenges =
-    state.challenges.filter(c => c.status === "pending").length;
-
-  document.getElementById("challengeCount").textContent =
-    `${activeChallenges} active`;
 }
 
-function getRankName(level) {
-  if (level >= 30) return "Legend";
-  if (level >= 20) return "All-Star";
-  if (level >= 15) return "Elite";
-  if (level >= 10) return "Pro";
-  if (level >= 5) return "Hooper";
-  return "Rookie";
+
+/* ================= MAIN RENDER ================= */
+
+function render() {
+
+  updateHeader();
+
+  renderPlayers();
+
+  renderChallenges();
+
+  renderProfile();
+
+  renderLeaderboard();
+
+  updateAuthModeUI();
+
 }
 
-/* ---------------- PLAYERS ---------------- */
 
-function setupPlayerSearch() {
-  const search = document.getElementById("playerSearch");
+/* ================= HEADER ================= */
 
-  search.addEventListener("input", renderPlayers);
+function updateHeader() {
 
-  document.querySelectorAll(".filter").forEach(button => {
-    button.addEventListener("click", () => {
-      document.querySelectorAll(".filter").forEach(b => {
-        b.classList.remove("active");
-      });
+  const button =
+    document.getElementById(
+      "headerAuthBtn"
+    );
 
-      button.classList.add("active");
-      currentFilter = button.dataset.filter;
+  const user =
+    currentUser();
 
-      renderPlayers();
-    });
-  });
+
+  if (user) {
+
+    button.textContent =
+      `@${user.username}`;
+
+    button.dataset.page =
+      "profile";
+
+  } else {
+
+    button.textContent =
+      "Create account";
+
+    button.dataset.page =
+      "auth";
+
+  }
+
 }
+
+
+/* ================= PLAYERS ================= */
 
 function renderPlayers() {
-  const container = document.getElementById("playersList");
-  const search = document.getElementById("playerSearch");
 
-  const query = search.value.trim().toLowerCase();
-
-  let players = [...demoPlayers];
-
-  if (currentFilter === "nearby") {
-    players = players.filter(p => p.location === "Nearby");
-  }
-
-  if (currentFilter === "ranked") {
-    players = players.filter(p => p.level >= 10);
-  }
-
-  if (query) {
-    players = players.filter(p =>
-      p.username.toLowerCase().includes(query)
+  const list =
+    document.getElementById(
+      "playersList"
     );
+
+
+  const search =
+    (
+      document.getElementById(
+        "playerSearch"
+      )?.value || ""
+    ).toLowerCase();
+
+
+  const filter =
+    document.getElementById(
+      "playerLevelFilter"
+    )?.value || "all";
+
+
+  const me =
+    currentUser();
+
+
+  let users =
+    state.users.filter(
+      user =>
+        !me ||
+        user.id !== me.id
+    );
+
+
+  if (search) {
+
+    users =
+      users.filter(user =>
+
+        user.username
+          .toLowerCase()
+          .includes(search)
+
+        ||
+
+        user.displayName
+          .toLowerCase()
+          .includes(search)
+
+        ||
+
+        user.location
+          .toLowerCase()
+          .includes(search)
+
+      );
+
   }
 
-  if (!players.length) {
-    container.innerHTML = `
-      <div class="empty">
-        No players found.
-      </div>
-    `;
-    return;
+
+  if (filter !== "all") {
+
+    users =
+      users.filter(user => {
+
+        const level =
+          levelForXP(user.xp);
+
+
+        if (
+          filter === "1-5"
+        ) {
+
+          return (
+            level >= 1 &&
+            level <= 5
+          );
+
+        }
+
+
+        if (
+          filter === "6-10"
+        ) {
+
+          return (
+            level >= 6 &&
+            level <= 10
+          );
+
+        }
+
+
+        return level >= 11;
+
+      });
+
   }
 
-  container.innerHTML = players.map(player => `
-    <div class="player-card">
-      <div class="avatar">🏀</div>
 
-      <div class="player-info">
-        <strong>${escapeHTML(player.username)}</strong>
-        <small>
-          Level ${player.level} • ${getRankName(player.level)}
-          • ${player.wins}W - ${player.losses}L
-        </small>
-      </div>
+  if (!users.length) {
 
-      <button
-        class="challenge-button"
-        data-challenge="${player.id}">
-        CHALLENGE
-      </button>
-    </div>
-  `).join("");
+    list.innerHTML = `
 
-  document.querySelectorAll("[data-challenge]").forEach(button => {
-    button.addEventListener("click", () => {
-      const id = Number(button.dataset.challenge);
-      const player = demoPlayers.find(p => p.id === id);
+      <div
+        class="empty-state"
+        style="grid-column:1/-1">
 
-      if (player) {
-        openChallengeModal(player);
-      }
-    });
-  });
-}
-
-/* ---------------- CHALLENGES ---------------- */
-
-function openChallengeModal(player) {
-  selectedOpponent = player;
-
-  document.getElementById("challengeOpponentName").textContent =
-    player.username;
-
-  document.getElementById("challengeOpponent").textContent =
-    player.username;
-
-  document.getElementById("challengeYou").textContent =
-    state.player.username;
-
-  document.getElementById("gameLocation").value = "";
-
-  document.getElementById("gameDate").value = "";
-
-  document.getElementById("challengeModal")
-    .classList.remove("hidden");
-}
-
-function closeChallengeModal() {
-  document.getElementById("challengeModal")
-    .classList.add("hidden");
-
-  selectedOpponent = null;
-}
-
-function setupChallengeModal() {
-  document.getElementById("closeChallenge")
-    .addEventListener("click", closeChallengeModal);
-
-  document.getElementById("sendChallenge")
-    .addEventListener("click", sendChallenge);
-}
-
-function sendChallenge() {
-  if (!selectedOpponent) return;
-
-  const location =
-    document.getElementById("gameLocation").value.trim();
-
-  const date =
-    document.getElementById("gameDate").value;
-
-  const format =
-    document.getElementById("gameFormat").value;
-
-  if (!location) {
-    showToast("Enter a basketball court/location.");
-    return;
-  }
-
-  if (!date) {
-    showToast("Choose a date.");
-    return;
-  }
-
-  const challenge = {
-    id: Date.now(),
-    opponentId: selectedOpponent.id,
-    opponentName: selectedOpponent.username,
-    format,
-    location,
-    date,
-    status: "pending",
-    createdAt: new Date().toISOString()
-  };
-
-  state.challenges.push(challenge);
-
-  saveState();
-  closeChallengeModal();
-
-  showToast(`🏀 Challenge sent to ${selectedOpponent.username}!`);
-
-  showPage("challengesPage");
-}
-
-function renderChallenges() {
-  const container = document.getElementById("challengesList");
-
-  if (!state.challenges.length) {
-    container.innerHTML = `
-      <div class="empty">
-        <div style="font-size:40px;margin-bottom:12px;">🏀</div>
-        <strong>No challenges yet</strong>
-        <p style="margin-top:7px;">
-          Find a player and send your first 1v1 challenge.
-        </p>
-      </div>
-    `;
-    return;
-  }
-
-  container.innerHTML = state.challenges.map(challenge => {
-    const format =
-      challenge.format === "timed"
-        ? "15 minute game"
-        : `First to ${challenge.format}`;
-
-    return `
-      <div class="challenge-card">
-        <div class="avatar">🏀</div>
-
-        <div class="player-info">
-          <strong>vs ${escapeHTML(challenge.opponentName)}</strong>
-
-          <small>
-            ${escapeHTML(format)}
-            • ${escapeHTML(challenge.location)}
-            • ${escapeHTML(challenge.date)}
-          </small>
-
-          <div class="status">
-            ${challenge.status.toUpperCase()}
-          </div>
+        <div class="empty-icon">
+          🏀
         </div>
 
+        <h2>
+          ${
+            state.users.length
+              ? "No players found"
+              : "The court is empty"
+          }
+        </h2>
+
+        <p>
+
+          ${
+            state.users.length
+              ? "Try a different search or level filter."
+              : "You're early. Create an account and become one of the first HOOPX players."
+          }
+
+        </p>
+
         ${
-          challenge.status === "pending"
+          !me
             ? `
               <button
-                class="challenge-button result-button"
-                data-result="${challenge.id}">
-                RESULT
+                class="btn btn-primary"
+                data-page="auth">
+                Create your player
               </button>
             `
             : ""
         }
+
       </div>
+
     `;
-  }).join("");
 
-  document.querySelectorAll("[data-result]").forEach(button => {
-    button.addEventListener("click", () => {
-      const id = Number(button.dataset.result);
-      openResultModal(id);
-    });
-  });
-}
-
-/* ---------------- RESULTS ---------------- */
-
-let selectedChallengeId = null;
-
-function openResultModal(challengeId) {
-  const challenge =
-    state.challenges.find(c => c.id === challengeId);
-
-  if (!challenge) return;
-
-  selectedChallengeId = challengeId;
-
-  document.getElementById("resultOpponentName").textContent =
-    `vs ${challenge.opponentName}`;
-
-  document.getElementById("yourScore").value = 11;
-  document.getElementById("opponentScore").value = 7;
-
-  document.getElementById("resultModal")
-    .classList.remove("hidden");
-}
-
-function closeResultModal() {
-  document.getElementById("resultModal")
-    .classList.add("hidden");
-
-  selectedChallengeId = null;
-}
-
-function setupResultModal() {
-  document.getElementById("closeResult")
-    .addEventListener("click", closeResultModal);
-
-  document.getElementById("submitResult")
-    .addEventListener("click", submitResult);
-}
-
-function submitResult() {
-  if (!selectedChallengeId) return;
-
-  const challenge =
-    state.challenges.find(c => c.id === selectedChallengeId);
-
-  if (!challenge) return;
-
-  const yourScore =
-    Number(document.getElementById("yourScore").value);
-
-  const opponentScore =
-    Number(document.getElementById("opponentScore").value);
-
-  if (
-    !Number.isFinite(yourScore) ||
-    !Number.isFinite(opponentScore) ||
-    yourScore < 0 ||
-    opponentScore < 0
-  ) {
-    showToast("Enter valid scores.");
     return;
+
   }
 
-  if (yourScore === opponentScore) {
-    showToast("A 1v1 cannot finish tied.");
-    return;
-  }
 
-  const won = yourScore > opponentScore;
+  list.innerHTML =
+    users
+      .map(playerCard)
+      .join("");
 
-  state.player.games++;
-
-  if (won) {
-    state.player.wins++;
-    state.player.streak++;
-    state.player.bestStreak =
-      Math.max(
-        state.player.bestStreak,
-        state.player.streak
-      );
-  } else {
-    state.player.losses++;
-    state.player.streak = 0;
-  }
-
-  challenge.status = won ? "won" : "lost";
-
-  state.matches.push({
-    id: Date.now(),
-    opponent: challenge.opponentName,
-    yourScore,
-    opponentScore,
-    result: won ? "WIN" : "LOSS",
-    date: new Date().toISOString()
-  });
-
-  improveSkills(won);
-
-  const xp = won ? 150 : 60;
-
-  saveState();
-  closeResultModal();
-
-  addXP(xp);
-
-  showToast(
-    won
-      ? `🏆 WIN! +${xp} XP`
-      : `GAME COMPLETE • +${xp} XP`
-  );
 }
 
-function improveSkills(won) {
-  const amount = won ? 1 : 0.25;
 
-  Object.keys(state.player.skills).forEach(skill => {
-    state.player.skills[skill] = Math.min(
-      99,
-      state.player.skills[skill] + amount
-    );
-  });
-}
+/* ================= SKILLS ================= */
 
-/* ---------------- PROFILE ---------------- */
+function skillName(key) {
 
-function renderProfile() {
-  const p = state.player;
-  const info = getLevelFromXP(p.xp);
+  return {
 
-  document.getElementById("profileUsername").textContent =
-    p.username;
-
-  document.getElementById("profileLevel").textContent =
-    info.level;
-
-  document.getElementById("profileRank").textContent =
-    `Level ${info.level} • ${getRankName(info.level)}`;
-
-  document.getElementById("profileXP").textContent =
-    `${info.currentXP} / ${info.requiredXP} XP`;
-
-  document.getElementById("profileXPBar").style.width =
-    `${Math.min(
-      100,
-      (info.currentXP / info.requiredXP) * 100
-    )}%`;
-
-  document.getElementById("statWins").textContent =
-    p.wins;
-
-  document.getElementById("statLosses").textContent =
-    p.losses;
-
-  document.getElementById("statGames").textContent =
-    p.games;
-
-  document.getElementById("statStreak").textContent =
-    p.streak;
-
-  const skillNames = {
     shooting: "Shooting",
-    speed: "Speed",
-    handling: "Ball Handling",
+
+    handles: "Handles",
+
     defense: "Defense",
-    strength: "Strength",
-    vertical: "Vertical"
-  };
 
-  document.getElementById("skillsList").innerHTML =
-    Object.entries(p.skills).map(([key, value]) => `
-      <div class="skill">
-        <div class="skill-top">
-          <span>${skillNames[key]}</span>
-          <span>${Math.round(value)}</span>
-        </div>
+    athleticism: "Athleticism",
 
-        <div class="skill-bar">
-          <div style="width:${Math.min(100, value)}%"></div>
-        </div>
-      </div>
-    `).join("");
+    finishing: "Finishing"
 
-  renderAchievements();
+  }[key] || key;
+
 }
 
-function renderAchievements() {
-  const p = state.player;
 
-  const achievements = [
-    {
-      icon: "🏀",
-      name: "First Game",
-      description: "Play your first 1v1",
-      unlocked: p.games >= 1
-    },
-    {
-      icon: "🏆",
-      name: "First Win",
-      description: "Win your first game",
-      unlocked: p.wins >= 1
-    },
-    {
-      icon: "🔥",
-      name: "Hot Streak",
-      description: "Win 5 games in a row",
-      unlocked: p.bestStreak >= 5
-    },
-    {
-      icon: "💯",
-      name: "Century",
-      description: "Reach 100 XP",
-      unlocked: p.xp >= 100
-    },
-    {
-      icon: "⭐",
-      name: "Hooper",
-      description: "Reach Level 5",
-      unlocked: p.level >= 5
-    },
-    {
-      icon: "👑",
-      name: "Legend",
-      description: "Reach Level 30",
-      unlocked: p.level >= 30
-    }
-  ];
+function skillMarkup(skills) {
 
-  document.getElementById("achievementsList").innerHTML =
-    achievements.map(a => `
-      <div class="achievement ${a.unlocked ? "" : "locked"}">
-        <span>${a.icon}</span>
-        <strong>${a.name}</strong>
-        <small>${a.description}</small>
-      </div>
-    `).join("");
+  return Object
+    .entries(skills)
+    .map(
+      ([key, value]) => `
+
+        <div class="skill-line">
+
+          <span>
+            ${skillName(key)}
+          </span>
+
+          <div class="skill-track">
+
+            <div
+              class="skill-fill"
+              style="width:${Math.min(
+                100,
+                value
+              )}%">
+            </div>
+
+          </div>
+
+          <strong>
+            ${value}
+          </strong>
+
+        </div>
+
+      `
+    )
+    .join("");
+
 }
 
-/* ---------------- LEADERBOARD ---------------- */
 
-function renderLeaderboard() {
-  const current = {
-    id: "you",
-    username: state.player.username,
-    level: state.player.level,
-    xp: state.player.xp,
-    wins: state.player.wins,
-    losses: state.player.losses,
-    streak: state.player.streak
-  };
+/* ================= PLAYER CARD ================= */
 
-  const players = [
-    ...demoPlayers,
-    current
-  ];
+function playerCard(user) {
 
-  players.sort((a, b) => b.xp - a.xp);
+  const level =
+    levelForXP(user.xp);
 
-  const container =
-    document.getElementById("leaderboardList");
 
-  container.innerHTML = players.map((player, index) => `
-    <div class="leader-card">
-      <div class="rank ${index < 3 ? "top" : ""}">
-        ${index + 1}
+  return `
+
+    <article class="player-card">
+
+      <div class="player-top">
+
+        <div class="avatar">
+
+          ${escapeHTML(
+            initials(user.displayName)
+          )}
+
+        </div>
+
+
+        <div>
+
+          <h3>
+            ${escapeHTML(
+              user.displayName
+            )}
+          </h3>
+
+          <div class="muted">
+
+            @${escapeHTML(
+              user.username
+            )}
+
+            · 📍
+
+            ${escapeHTML(
+              user.location
+            )}
+
+          </div>
+
+        </div>
+
+
+        <div class="player-level">
+
+          LVL ${level}
+
+        </div>
+
       </div>
 
-      <div class="avatar">🏀</div>
 
-      <div class="leader-info">
+      <div class="player-skills">
+
+        ${skillMarkup(
+          user.skills
+        )}
+
+      </div>
+
+
+      <button
+        class="btn btn-primary"
+        data-challenge-player="${escapeHTML(
+          user.id
+        )}">
+
+        Challenge 1v1
+
+      </button>
+
+    </article>
+
+  `;
+
+}
+
+
+/* ================= CHALLENGES ================= */
+
+function renderChallenges() {
+
+  const user =
+    currentUser();
+
+
+  const prompt =
+    document.getElementById(
+      "challengeLoginPrompt"
+    );
+
+
+  const content =
+    document.getElementById(
+      "challengesContent"
+    );
+
+
+  prompt.classList.toggle(
+    "hidden",
+    !!user
+  );
+
+
+  content.classList.toggle(
+    "hidden",
+    !user
+  );
+
+
+  if (!user) return;
+
+
+  const list =
+    document.getElementById(
+      "challengesList"
+    );
+
+
+  const challenges =
+    state.challenges
+
+      .filter(
+        challenge =>
+          challenge.fromId === user.id ||
+          challenge.toId === user.id
+      )
+
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt) -
+          new Date(a.createdAt)
+      );
+
+
+  if (!challenges.length) {
+
+    list.innerHTML = `
+
+      <div class="empty-state">
+
+        <div class="empty-icon">
+          🏀
+        </div>
+
+        <h2>
+          No challenges yet
+        </h2>
+
+        <p>
+          Find a player and send your first
+          1v1 challenge.
+        </p>
+
+        <button
+          class="btn btn-primary"
+          data-page="players">
+
+          Find players
+
+        </button>
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  list.innerHTML =
+    challenges
+      .map(challengeCard)
+      .join("");
+
+}
+
+
+/* ================= CHALLENGE CARD ================= */
+
+function challengeCard(challenge) {
+
+  const me =
+    currentUser();
+
+
+  const opponent =
+    getUser(
+      challenge.fromId === me.id
+        ? challenge.toId
+        : challenge.fromId
+    );
+
+
+  const outgoing =
+    challenge.fromId === me.id;
+
+
+  return `
+
+    <article class="challenge-card">
+
+      <div>
+
         <strong>
-          ${escapeHTML(player.username)}
-          ${player.id === "you" ? " (YOU)" : ""}
+
+          ${
+            outgoing
+              ? "You challenged"
+              : "Challenge from"
+          }
+
+          ${escapeHTML(
+            opponent?.displayName ||
+            "Player"
+          )}
+
         </strong>
 
-        <small>
-          Level ${player.level} •
-          ${player.wins}W - ${player.losses}L
-        </small>
+
+        <div class="challenge-meta">
+
+          <span>
+            🏀
+            ${escapeHTML(
+              challenge.format
+            )}
+          </span>
+
+          <span>
+            📍
+            ${escapeHTML(
+              challenge.location
+            )}
+          </span>
+
+          <span>
+            📅
+            ${escapeHTML(
+              challenge.date
+            )}
+          </span>
+
+          <span
+            class="status
+            ${escapeHTML(
+              challenge.status
+            )}">
+
+            ${escapeHTML(
+              challenge.status
+            )}
+
+          </span>
+
+        </div>
+
+
+        ${
+          challenge.result
+            ? `
+
+              <div
+                class="muted"
+                style="margin-top:8px">
+
+                Final:
+
+                ${challenge.result.youScore}
+
+                —
+
+                ${challenge.result.opponentScore}
+
+              </div>
+
+            `
+            : ""
+        }
+
       </div>
 
-      <div class="leader-score">
-        <strong>${player.xp}</strong>
-        <small>XP</small>
+
+      <div>
+
+        ${
+          !outgoing &&
+          challenge.status === "pending"
+
+            ? `
+
+              <button
+                class="btn btn-primary"
+                data-challenge-action="accept"
+                data-id="${challenge.id}">
+
+                Accept
+
+              </button>
+
+
+              <button
+                class="btn btn-ghost"
+                data-challenge-action="decline"
+                data-id="${challenge.id}">
+
+                Decline
+
+              </button>
+
+            `
+
+            : ""
+        }
+
+
+        ${
+          challenge.status === "accepted"
+
+            ? `
+
+              <button
+                class="btn btn-primary"
+                data-result-id="${challenge.id}">
+
+                Record result
+
+              </button>
+
+            `
+
+            : ""
+        }
+
       </div>
-    </div>
-  `).join("");
+
+    </article>
+
+  `;
+
 }
 
-/* ---------------- SECURITY ---------------- */
 
-function escapeHTML(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+/* ================= PROFILE ================= */
+
+function renderProfile() {
+
+  const user =
+    currentUser();
+
+
+  const loggedOut =
+    document.getElementById(
+      "profileLoggedOut"
+    );
+
+
+  const content =
+    document.getElementById(
+      "profileContent"
+    );
+
+
+  loggedOut.classList.toggle(
+    "hidden",
+    !!user
+  );
+
+
+  content.classList.toggle(
+    "hidden",
+    !user
+  );
+
+
+  if (!user) return;
+
+
+  const progress =
+    XPProgress(user.xp);
+
+
+  document.getElementById(
+    "profileAvatar"
+  ).textContent =
+    initials(
+      user.displayName
+    );
+
+
+  document.getElementById(
+    "profileUsername"
+  ).textContent =
+    `@${user.username}`;
+
+
+  document.getElementById(
+    "profileName"
+  ).textContent =
+    user.displayName;
+
+
+  document.getElementById(
+    "profileLocation"
+  ).textContent =
+    `📍 ${user.location}`;
+
+
+  document.getElementById(
+    "profileLevel"
+  ).textContent =
+    `LVL ${progress.level}`;
+
+
+  document.getElementById(
+    "profileXpText"
+  ).textContent =
+    `${progress.current} / ${progress.needed} XP`;
+
+
+  document.getElementById(
+    "profileXpBar"
+  ).style.width =
+    `${progress.percent}%`;
+
+
+  document.getElementById(
+    "statWins"
+  ).textContent =
+    user.wins;
+
+
+  document.getElementById(
+    "statLosses"
+  ).textContent =
+    user.losses;
+
+
+  document.getElementById(
+    "statGames"
+  ).textContent =
+    user.wins +
+    user.losses;
+
+
+  document.getElementById(
+    "statStreak"
+  ).textContent =
+    user.streak;
+
+
+  document.getElementById(
+    "skillsList"
+  ).innerHTML =
+
+    Object
+      .entries(user.skills)
+      .map(
+        ([key, value]) => `
+
+          <div class="skill-card">
+
+            <div class="skill-card-top">
+
+              <span>
+                ${skillName(key)}
+              </span>
+
+              <strong>
+                ${value}
+              </strong>
+
+            </div>
+
+
+            <div class="skill-track">
+
+              <div
+                class="skill-fill"
+                style="width:${value}%">
+              </div>
+
+            </div>
+
+          </div>
+
+        `
+      )
+      .join("");
+
+
+  document.getElementById(
+    "achievementsList"
+  ).innerHTML =
+
+    achievements
+      .map(achievement => {
+
+        const unlocked =
+          achievement.check(user);
+
+
+        return `
+
+          <div
+            class="achievement
+            ${
+              unlocked
+                ? "unlocked"
+                : ""
+            }">
+
+            <div
+              class="achievement-icon">
+
+              ${achievement.icon}
+
+            </div>
+
+            <h3>
+              ${achievement.title}
+            </h3>
+
+            <p>
+              ${achievement.desc}
+            </p>
+
+          </div>
+
+        `;
+
+      })
+      .join("");
+
 }
 
-/* ---------------- INITIALIZATION ---------------- */
 
-function renderAll() {
-  renderHome();
-  renderPlayers();
-  renderChallenges();
-  renderProfile();
-  renderLeaderboard();
+/* ================= LEADERBOARD ================= */
+
+function renderLeaderboard() {
+
+  const list =
+    document.getElementById(
+      "leaderboardList"
+    );
+
+
+  if (!state.users.length) {
+
+    list.innerHTML = `
+
+      <div class="empty-state">
+
+        <div class="empty-icon">
+          🏆
+        </div>
+
+        <h2>
+          Leaderboard waiting
+        </h2>
+
+        <p>
+          No one has created a HOOPX player yet.
+        </p>
+
+        <button
+          class="btn btn-primary"
+          data-page="auth">
+
+          Be the first player
+
+        </button>
+
+      </div>
+
+    `;
+
+    return;
+
+  }
+
+
+  const players =
+    [...state.users]
+      .sort(
+        (a, b) =>
+          b.xp - a.xp ||
+          b.wins - a.wins
+      );
+
+
+  list.innerHTML =
+    players
+      .map(
+        (user, index) => `
+
+          <article class="rank-card">
+
+            <div class="rank-number">
+
+              #${index + 1}
+
+            </div>
+
+
+            <div class="player-top">
+
+              <div class="avatar">
+
+                ${escapeHTML(
+                  initials(
+                    user.displayName
+                  )
+                )}
+
+              </div>
+
+
+              <div>
+
+                <h3>
+                  ${escapeHTML(
+                    user.displayName
+                  )}
+                </h3>
+
+                <div class="muted">
+
+                  @${escapeHTML(
+                    user.username
+                  )}
+
+                  ·
+
+                  ${user.wins}W
+
+                  ${user.losses}L
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="rank-level">
+
+              LVL
+              ${levelForXP(user.xp)}
+
+            </div>
+
+
+            <div class="rank-xp">
+
+              ${user.xp}
+              XP
+
+            </div>
+
+          </article>
+
+        `
+      )
+      .join("");
+
 }
 
-function setup() {
-  setupNavigation();
-  setupPlayerSearch();
-  setupChallengeModal();
-  setupResultModal();
 
-  renderAll();
+/* ================= MODALS ================= */
+
+function openModal(id) {
+
+  document
+    .getElementById(id)
+    .classList.remove(
+      "hidden"
+    );
+
 }
 
-setup();
+
+function closeModal(id) {
+
+  document
+    .getElementById(id)
+    .classList.add(
+      "hidden"
+    );
+
+}
+
+
+/* ================= CHALLENGE MODAL ================= */
+
+function populateOpponentSelect(
+  selectedId = ""
+) {
+
+  const select =
+    document.getElementById(
+      "challengeOpponent"
+    );
+
+
+  const me =
+    currentUser();
+
+
+  select.innerHTML =
+
+    state.users
+
+      .filter(
+        user =>
+          user.id !== me?.id
+      )
+
+      .map(
+        user => `
+
+          <option
+            value="${escapeHTML(
+              user.id
+            )}"
+
+            ${
+              user.id === selectedId
+                ? "selected"
+                : ""
+            }>
+
+            ${escapeHTML(
+              user.displayName
+            )}
+
+            (@${escapeHTML(
+              user.username
+            )})
+
+          </option>
+
+        `
+      )
+
+      .join("");
+
+}
+
+
+function openChallengeModal(
+  opponentId = ""
+) {
+
+  if (!requireUser()) return;
+
+
+  const otherPlayers =
+    state.users.filter(
+      user =>
+        user.id !==
+        currentUser().id
+    );
+
+
+  if (!otherPlayers.length) {
+
+    showToast(
+      "There are no other HOOPX players yet."
+    );
+
+    navigate("players");
+
+    return;
+
+  }
+
+
+  populateOpponentSelect(
+    opponentId
+  );
+
+
+  document.getElementById(
+    "challengeDate"
+  ).min =
+    new Date()
+      .toISOString()
+      .slice(0, 10);
+
+
+  openModal(
+    "challengeModal"
+  );
+
+}
+
+
+/* ================= CREATE CHALLENGE ================= */
+
+function submitChallenge(event) {
+
+  event.preventDefault();
+
+
+  const me =
+    currentUser();
+
+
+  if (!me) return;
+
+
+  const opponentId =
+    document.getElementById(
+      "challengeOpponent"
+    ).value;
+
+
+  if (!opponentId) {
+
+    showToast(
+      "You need another player to challenge."
+    );
+
+    return;
+
+  }
+
+
+  const challenge = {
+
+    id: generateId(),
+
+    fromId: me.id,
+
+    toId: opponentId,
+
+    format:
+      document.getElementById(
+        "challengeFormat"
+      ).value,
+
+    location:
+      document.getElementById(
+        "challengeLocation"
+      ).value.trim(),
+
+    date:
+      document.getElementById(
+        "challengeDate"
+      ).value,
+
+    status: "pending",
+
+    result: null,
+
+    createdAt:
+      new Date().toISOString()
+
+  };
+
+
+  state.challenges.push(
+    challenge
+  );
+
+
+  saveState();
+
+
+  closeModal(
+    "challengeModal"
+  );
+
+
+  document
+    .getElementById(
+      "challengeForm"
+    )
+    .reset();
+
+
+  showToast(
+    "Challenge sent 🏀"
+  );
+
+
+  navigate(
+    "challenges"
+  );
+
+}
+
+
+/* ================= ACCEPT ================= */
+
+function acceptChallenge(
+  challengeId
+) {
+
+  const challenge =
+    state.challenges.find(
+      item =>
+        item.id === challengeId
+    );
+
+
+  if (!challenge) return;
+
+
+  challenge.status =
+    "accepted";
+
+
+  saveState();
+
+  render();
+
+
+  showToast(
+    "Challenge accepted. Get to the court 🔥"
+  );
+
+}
+
+
+/* ================= DECLINE ================= */
+
+function declineChallenge(
+  challengeId
+) {
+
+  const challenge =
+    state.challenges.find(
+      item =>
+        item.id === challengeId
+    );
+
+
+  if (!challenge) return;
+
+
+  challenge.status =
+    "declined";
+
+
+  saveState();
+
+  render();
+
+
+  showToast(
+    "Challenge declined."
+  );
+
+}
+
+
+/* ================= RESULT ================= */
+
+function openResultModal(
+  challengeId
+) {
+
+  const challenge =
+    state.challenges.find(
+      item =>
+        item.id === challengeId
+    );
+
+
+  if (
+    !challenge ||
+    challenge.status !==
+      "accepted"
+  ) {
+
+    return;
+
+  }
+
+
+  const me =
+    currentUser();
+
+
+  const opponent =
+    getUser(
+      challenge.fromId === me.id
+        ? challenge.toId
+        : challenge.fromId
+    );
+
+
+  document.getElementById(
+    "resultChallengeId"
+  ).value =
+    challengeId;
+
+
+  document.getElementById(
+    "resultMatchText"
+  ).textContent =
+
+    `You vs ${
+      opponent?.displayName ||
+      "Player"
+    } · ${
+      challenge.format
+    }`;
+
+
+  openModal(
+    "resultModal"
+  );
+
+}
+
+
+/* ================= SAVE RESULT ================= */
+
+function submitResult(event) {
+
+  event.preventDefault();
+
+
+  const challenge =
+    state.challenges.find(
+      item =>
+        item.id ===
+        document.getElementById(
+          "resultChallengeId"
+        ).value
+    );
+
+
+  const me =
+    currentUser();
+
+
+  if (!challenge || !me) return;
+
+
+  const myScore =
+    Number(
+      document.getElementById(
+        "yourScore"
+      ).value
+    );
+
+
+  const opponentScore =
+    Number(
+      document.getElementById(
+        "opponentScore"
+      ).value
+    );
+
+
+  if (
+    myScore === opponentScore
+  ) {
+
+    showToast(
+      "A 1v1 result can't be a tie."
+    );
+
+    return;
+
+  }
+
+
+  const opponent =
+    getUser(
+      challenge.fromId === me.id
+        ? challenge.toId
+        : challenge.fromId
+    );
+
+
+  if (!opponent) return;
+
+
+  const meWon =
+    myScore >
+    opponentScore;
+
+
+  const winner =
+    meWon
+      ? me
+      : opponent;
+
+
+  const loser =
+    meWon
+      ? opponent
+      : me;
+
+
+  /* ================= UPDATE STATS ================= */
+
+  winner.wins += 1;
+
+  winner.streak += 1;
+
+  winner.xp += 150;
+
+
+  loser.losses += 1;
+
+  loser.streak = 0;
+
+  loser.xp += 60;
+
+
+  /* ================= SKILL XP ================= */
+
+  const skillPool = [
+
+    "shooting",
+
+    "handles",
+
+    "finishing"
+
+  ];
+
+
+  const randomSkill =
+    skillPool[
+      Math.floor(
+        Math.random() *
+        skillPool.length
+      )
+    ];
+
+
+  winner.skills[
+    randomSkill
+  ] = Math.min(
+    100,
+    winner.skills[randomSkill] + 1
+  );
+
+
+  /* ================= RESULT ================= */
+
+  challenge.status =
+    "completed";
+
+
+  challenge.result = {
+
+    yourScore:
+      myScore,
+
+    opponentScore:
+      opponentScore,
+
+    winnerId:
+      winner.id
+
+  };
+
+
+  saveState();
+
+
+  closeModal(
+    "resultModal"
+  );
+
+
+  document
+    .getElementById(
+      "resultForm"
+    )
+    .reset();
+
+
+  render();
+
+
+  if (meWon) {
+
+    showToast(
+      "+150 XP — W 🏆"
+    );
+
+  } else {
+
+    showToast(
+      "+60 XP — keep grinding 💪"
+    );
+
+  }
+
+}
+
+
+/* ================= AUTH MODE ================= */
+
+function setAuthMode(mode) {
+
+  authMode =
+    mode;
+
+  updateAuthModeUI();
+
+}
+
+
+function updateAuthModeUI() {
+
+  const signup =
+    authMode === "signup";
+
+
+  document
+    .getElementById(
+      "signupTab"
+    )
+    .classList.toggle(
+      "active",
+      signup
+    );
+
+
+  document
+    .getElementById(
+      "loginTab"
+    )
+    .classList.toggle(
+      "active",
+      !signup
+    );
+
+
+  document
+    .getElementById(
+      "signupFields"
+    )
+    .classList.toggle(
+      "hidden",
+      !signup
+    );
+
+
+  document
+    .getElementById(
+      "confirmPasswordLabel"
+    )
+    .classList.toggle(
+      "hidden",
+      !signup
+    );
+
+
+  document
+    .getElementById(
+      "authTitle"
+    )
+    .textContent =
+
+    signup
+      ? "CREATE YOUR PLAYER."
+      : "WELCOME BACK.";
+
+
+  document
+    .getElementById(
+      "authSubtitle"
+    )
+    .textContent =
+
+    signup
+
+      ? "Your account is your player. Build your stats, meet hoopers and start your run."
+
+      : "Log back into your HOOPX player.";
+
+
+  document
+    .getElementById(
+      "authSubmit"
+    )
+    .textContent =
+
+    signup
+      ? "Create account"
+      : "Log in";
+
+
+  document
+    .getElementById(
+      "password"
+    )
+    .autocomplete =
+
+    signup
+      ? "new-password"
+      : "current-password";
+
+}
+
+
+/* ================= AUTH SUBMIT ================= */
+
+function handleAuth(event) {
+
+  event.preventDefault();
+
+
+  const email =
+    document
+      .getElementById(
+        "email"
+      )
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  const password =
+    document.getElementById(
+      "password"
+    ).value;
+
+
+  /* ================= SIGN UP ================= */
+
+  if (
+    authMode === "signup"
+  ) {
+
+    const displayName =
+      document.getElementById(
+        "displayName"
+      ).value.trim();
+
+
+    const username =
+      normalizeUsername(
+        document.getElementById(
+          "username"
+        ).value
+      );
+
+
+    const age =
+      Number(
+        document.getElementById(
+          "age"
+        ).value
+      );
+
+
+    const location =
+      document.getElementById(
+        "location"
+      ).value.trim();
+
+
+    const confirm =
+      document.getElementById(
+        "confirmPassword"
+      ).value;
+
+
+    if (
+      !displayName ||
+      !username ||
+      !location
+    ) {
+
+      showToast(
+        "Fill in all player fields."
+      );
+
+      return;
+
+    }
+
+
+    if (
+      username.length < 3
+    ) {
+
+      showToast(
+        "Username needs at least 3 characters."
+      );
+
+      return;
+
+    }
+
+
+    if (
+      !Number.isInteger(age) ||
+      age < 13
+    ) {
+
+      showToast(
+        "HOOPX accounts currently require age 13+."
+      );
+
+      return;
+
+    }
+
+
+    if (
+      password.length < 6
+    ) {
+
+      showToast(
+        "Password needs at least 6 characters."
+      );
+
+      return;
+
+    }
+
+
+    if (
+      password !== confirm
+    ) {
+
+      showToast(
+        "Passwords don't match."
+      );
+
+      return;
+
+    }
+
+
+    if (
+      state.users.some(
+        user =>
+          user.email === email
+      )
+    ) {
+
+      showToast(
+        "An account with this email already exists."
+      );
+
+      return;
+
+    }
+
+
+    if (
+      state.users.some(
+        user =>
+          user.username === username
+      )
+    ) {
+
+      showToast(
+        "That username is already taken."
+      );
+
+      return;
+
+    }
+
+
+    const user = {
+
+      id:
+        generateId(),
+
+      email,
+
+      password,
+
+      displayName,
+
+      username,
+
+      age,
+
+      location,
+
+      xp: 0,
+
+      wins: 0,
+
+      losses: 0,
+
+      streak: 0,
+
+      skills:
+        {
+          ...defaultSkills
+        },
+
+      createdAt:
+        new Date().toISOString()
+
+    };
+
+
+    state.users.push(
+      user
+    );
+
+
+    state.currentUserId =
+      user.id;
+
+
+    saveState();
+
+
+    event.target.reset();
+
+
+    showToast(
+      "Welcome to HOOPX 🏀"
+    );
+
+
+    navigate(
+      "profile"
+    );
+
+
+    return;
+
+  }
+
+
+  /* ================= LOGIN ================= */
+
+  const user =
+    state.users.find(
+      item =>
+        item.email === email &&
+        item.password === password
+    );
+
+
+  if (!user) {
+
+    showToast(
+      "Email or password is incorrect."
+    );
+
+    return;
+
+  }
+
+
+  state.currentUserId =
+    user.id;
+
+
+  saveState();
+
+
+  event.target.reset();
+
+
+  showToast(
+    `Welcome back, ${user.displayName} 🔥`
+  );
+
+
+  navigate(
+    "profile"
+  );
+
+}
+
+
+/* ================= EDIT PROFILE ================= */
+
+function editProfile() {
+
+  const user =
+    currentUser();
+
+
+  if (!user) return;
+
+
+  document.getElementById(
+    "editDisplayName"
+  ).value =
+    user.displayName;
+
+
+  document.getElementById(
+    "editLocation"
+  ).value =
+    user.location;
+
+
+  openModal(
+    "profileModal"
+  );
+
+}
+
+
+function saveProfile(event) {
+
+  event.preventDefault();
+
+
+  const user =
+    currentUser();
+
+
+  if (!user) return;
+
+
+  user.displayName =
+    document
+      .getElementById(
+        "editDisplayName"
+      )
+      .value
+      .trim();
+
+
+  user.location =
+    document
+      .getElementById(
+        "editLocation"
+      )
+      .value
+      .trim();
+
+
+  saveState();
+
+
+  closeModal(
+    "profileModal"
+  );
+
+
+  render();
+
+
+  showToast(
+    "Profile updated."
+  );
+
+}
+
+
+/* ================= LOGOUT ================= */
+
+function logout() {
+
+  state.currentUserId =
+    null;
+
+
+  saveState();
+
+
+  navigate(
+    "home"
+  );
+
+
+  showToast(
+    "Logged out."
+  );
+
+}
+
+
+/* ================= GLOBAL CLICK HANDLER ================= */
+
+document.addEventListener(
+  "click",
+  event => {
+
+
+    /* Navigation */
+
+    const pageButton =
+      event.target.closest(
+        "[data-page]"
+      );
+
+
+    if (pageButton) {
+
+      event.preventDefault();
+
+      navigate(
+        pageButton.dataset.page
+      );
+
+      return;
+
+    }
+
+
+    /* Challenge player */
+
+    const challengeButton =
+      event.target.closest(
+        "[data-challenge-player]"
+      );
+
+
+    if (challengeButton) {
+
+      openChallengeModal(
+        challengeButton.dataset
+          .challengePlayer
+      );
+
+      return;
+
+    }
+
+
+    /* Close modal */
+
+    const closeButton =
+      event.target.closest(
+        "[data-close-modal]"
+      );
+
+
+    if (closeButton) {
+
+      closeModal(
+        closeButton.dataset
+          .closeModal
+      );
+
+      return;
+
+    }
+
+
+    /* Challenge actions */
+
+    const actionButton =
+      event.target.closest(
+        "[data-challenge-action]"
+      );
+
+
+    if (actionButton) {
+
+      if (
+        actionButton.dataset
+          .challengeAction ===
+        "accept"
+      ) {
+
+        acceptChallenge(
+          actionButton.dataset.id
+        );
+
+      }
+
+
+      if (
+        actionButton.dataset
+          .challengeAction ===
+        "decline"
+      ) {
+
+        declineChallenge(
+          actionButton.dataset.id
+        );
+
+      }
+
+      return;
+
+    }
+
+
+    /* Result */
+
+    const resultButton =
+      event.target.closest(
+        "[data-result-id]"
+      );
+
+
+    if (resultButton) {
+
+      openResultModal(
+        resultButton.dataset
+          .resultId
+      );
+
+    }
+
+  }
+);
+
+
+/* ================= HOME BUTTONS ================= */
+
+document
+  .getElementById(
+    "heroCreateBtn"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      setAuthMode(
+        "signup"
+      );
+
+      navigate(
+        "auth"
+      );
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "heroLoginBtn"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      setAuthMode(
+        "login"
+      );
+
+      navigate(
+        "auth"
+      );
+
+    }
+  );
+
+
+document
+  .getElementById(
+    "bannerCreateBtn"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      setAuthMode(
+        "signup"
+      );
+
+      navigate(
+        "auth"
+      );
+
+    }
+  );
+
+
+/* ================= CHALLENGE ================= */
+
+document
+  .getElementById(
+    "newChallengeBtn"
+  )
+  .addEventListener(
+    "click",
+    () =>
+      openChallengeModal()
+  );
+
+
+document
+  .getElementById(
+    "challengeForm"
+  )
+  .addEventListener(
+    "submit",
+    submitChallenge
+  );
+
+
+/* ================= RESULT ================= */
+
+document
+  .getElementById(
+    "resultForm"
+  )
+  .addEventListener(
+    "submit",
+    submitResult
+  );
+
+
+/* ================= PROFILE ================= */
+
+document
+  .getElementById(
+    "profileForm"
+  )
+  .addEventListener(
+    "submit",
+    saveProfile
+  );
+
+
+document
+  .getElementById(
+    "editProfileBtn"
+  )
+  .addEventListener(
+    "click",
+    editProfile
+  );
+
+
+/* ================= AUTH ================= */
+
+document
+  .getElementById(
+    "authForm"
+  )
+  .addEventListener(
+    "submit",
+    handleAuth
+  );
+
+
+document
+  .getElementById(
+    "signupTab"
+  )
+  .addEventListener(
+    "click",
+    () =>
+      setAuthMode(
+        "signup"
+      )
+  );
+
+
+document
+  .getElementById(
+    "loginTab"
+  )
+  .addEventListener(
+    "click",
+    () =>
+      setAuthMode(
+        "login"
+      )
+  );
+
+
+/* ================= SEARCH ================= */
+
+document
+  .getElementById(
+    "playerSearch"
+  )
+  .addEventListener(
+    "input",
+    renderPlayers
+  );
+
+
+document
+  .getElementById(
+    "playerLevelFilter"
+  )
+  .addEventListener(
+    "change",
+    renderPlayers
+  );
+
+
+/* ================= MENU ================= */
+
+document
+  .getElementById(
+    "menuBtn"
+  )
+  .addEventListener(
+    "click",
+    () => {
+
+      const user =
+        currentUser();
+
+
+      if (user) {
+
+        const logoutUser =
+          confirm(
+            `Logged in as @${user.username}.\n\nPress OK to log out, or Cancel to stay logged in.`
+          );
+
+
+        if (logoutUser) {
+
+          logout();
+
+        }
+
+      } else {
+
+        navigate(
+          "auth"
+        );
+
+      }
+
+    }
+  );
+
+
+/* ================= ESCAPE ================= */
+
+document.addEventListener(
+  "keydown",
+  event => {
+
+    if (
+      event.key === "Escape"
+    ) {
+
+      document
+        .querySelectorAll(
+          ".modal:not(.hidden)"
+        )
+        .forEach(
+          modal =>
+            closeModal(
+              modal.id
+            )
+        );
+
+    }
+
+  }
+);
+
+
+/* ================= START ================= */
+
+render();
