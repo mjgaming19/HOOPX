@@ -3,335 +3,1116 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0b0d12">
-  <title>COURT — Real Life Basketball</title>
+
+  <title>HOOPX — Real Players. Real Courts. Real Games.</title>
+  <meta name="description" content="HOOPX — connect with real basketball players, challenge them to 1v1 games and level up.">
+
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <div id="app">
 
-    <header class="topbar">
-      <div class="logo">
-        <span class="logo-ball">🏀</span>
-        <span>COURT</span>
-      </div>
+<div id="app">
 
-      <div class="level-mini">
-        <span id="headerLevel">LVL 1</span>
-        <div class="mini-xp">
-          <div id="headerXPBar"></div>
-        </div>
-      </div>
-    </header>
+  <!-- ================= HEADER ================= -->
 
-    <main>
+  <header class="topbar">
 
-      <!-- HOME -->
-      <section id="homePage" class="page active">
-        <div class="hero">
-          <div>
-            <p class="eyebrow">REAL LIFE BASKETBALL</p>
-            <h1>YOUR COURT.<br><span>YOUR GAME.</span></h1>
-            <p class="hero-text">
-              Find players, challenge them to a real-life 1v1,
-              play the game and build your basketball reputation.
-            </p>
-          </div>
+    <button class="brand" data-page="home">
+      <span class="brand-ball">🏀</span>
+      <span>HOOP<span>X</span></span>
+    </button>
 
-          <div class="hero-ball">🏀</div>
-        </div>
+    <div class="top-actions">
 
-        <div class="player-preview">
-          <div class="avatar big-avatar" id="homeAvatar">🏀</div>
-
-          <div class="preview-info">
-            <span class="muted">PLAYER</span>
-            <h2 id="homeUsername">Player</h2>
-            <p id="homeLevel">Level 1 • Rookie</p>
-
-            <div class="xp-row">
-              <span id="homeXP">0 XP</span>
-              <span id="homeNextXP">100 XP</span>
-            </div>
-
-            <div class="xp-bar">
-              <div id="homeXPBar"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="quick-grid">
-          <button class="quick-card" data-page="playersPage">
-            <span>🔎</span>
-            <strong>Find Players</strong>
-            <small>Challenge someone</small>
-          </button>
-
-          <button class="quick-card" data-page="challengesPage">
-            <span>🏀</span>
-            <strong>Challenges</strong>
-            <small id="challengeCount">0 active</small>
-          </button>
-
-          <button class="quick-card" data-page="profilePage">
-            <span>🧍</span>
-            <strong>My Player</strong>
-            <small>View your stats</small>
-          </button>
-
-          <button class="quick-card" data-page="leaderboardPage">
-            <span>🏆</span>
-            <strong>Leaderboard</strong>
-            <small>See the rankings</small>
-          </button>
-        </div>
-
-        <div class="section-heading">
-          <h2>How it works</h2>
-        </div>
-
-        <div class="steps">
-          <div class="step">
-            <b>01</b>
-            <span>Find a player</span>
-          </div>
-          <div class="step">
-            <b>02</b>
-            <span>Send a 1v1</span>
-          </div>
-          <div class="step">
-            <b>03</b>
-            <span>Meet & play</span>
-          </div>
-          <div class="step">
-            <b>04</b>
-            <span>Record result</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- PLAYERS -->
-      <section id="playersPage" class="page">
-        <div class="page-heading">
-          <div>
-            <p class="eyebrow">PLAYERS</p>
-            <h1>Find Players</h1>
-          </div>
-        </div>
-
-        <div class="search-box">
-          <span>🔎</span>
-          <input id="playerSearch" type="search" placeholder="Search players...">
-        </div>
-
-        <div class="filter-row">
-          <button class="filter active" data-filter="all">All</button>
-          <button class="filter" data-filter="nearby">Nearby</button>
-          <button class="filter" data-filter="ranked">Ranked</button>
-        </div>
-
-        <div id="playersList" class="players-list"></div>
-      </section>
-
-      <!-- CHALLENGES -->
-      <section id="challengesPage" class="page">
-        <div class="page-heading">
-          <div>
-            <p class="eyebrow">MATCHMAKING</p>
-            <h1>Challenges</h1>
-          </div>
-        </div>
-
-        <div id="challengesList"></div>
-      </section>
-
-      <!-- PROFILE -->
-      <section id="profilePage" class="page">
-        <div class="profile-header">
-          <div class="avatar profile-avatar" id="profileAvatar">🏀</div>
-
-          <div>
-            <p class="eyebrow">YOUR PLAYER</p>
-            <h1 id="profileUsername">Player</h1>
-            <p id="profileRank">Level 1 • Rookie</p>
-          </div>
-        </div>
-
-        <div class="level-card">
-          <div class="level-top">
-            <strong>LEVEL <span id="profileLevel">1</span></strong>
-            <span id="profileXP">0 / 100 XP</span>
-          </div>
-
-          <div class="xp-bar large">
-            <div id="profileXPBar"></div>
-          </div>
-        </div>
-
-        <div class="stat-grid">
-          <div class="stat-card">
-            <span>🏆</span>
-            <strong id="statWins">0</strong>
-            <small>Wins</small>
-          </div>
-
-          <div class="stat-card">
-            <span>💀</span>
-            <strong id="statLosses">0</strong>
-            <small>Losses</small>
-          </div>
-
-          <div class="stat-card">
-            <span>🏀</span>
-            <strong id="statGames">0</strong>
-            <small>Games</small>
-          </div>
-
-          <div class="stat-card">
-            <span>🔥</span>
-            <strong id="statStreak">0</strong>
-            <small>Win Streak</small>
-          </div>
-        </div>
-
-        <div class="section-heading">
-          <h2>Skills</h2>
-        </div>
-
-        <div class="skills-card" id="skillsList"></div>
-
-        <div class="section-heading">
-          <h2>Achievements</h2>
-        </div>
-
-        <div id="achievementsList" class="achievements"></div>
-      </section>
-
-      <!-- LEADERBOARD -->
-      <section id="leaderboardPage" class="page">
-        <div class="page-heading">
-          <div>
-            <p class="eyebrow">COMPETITION</p>
-            <h1>Leaderboard</h1>
-          </div>
-        </div>
-
-        <div class="leaderboard-tabs">
-          <button class="active">XP</button>
-          <button>Wins</button>
-          <button>Streak</button>
-        </div>
-
-        <div id="leaderboardList"></div>
-      </section>
-
-    </main>
-
-    <!-- BOTTOM NAV -->
-    <nav class="bottom-nav">
-      <button class="nav-item active" data-page="homePage">
-        <span>⌂</span>
-        <small>Home</small>
+      <button
+        id="headerAuthBtn"
+        class="btn btn-small btn-primary"
+        data-page="auth">
+        Create account
       </button>
 
-      <button class="nav-item" data-page="playersPage">
-        <span>⌕</span>
-        <small>Players</small>
+      <button
+        id="menuBtn"
+        class="icon-btn"
+        aria-label="Menu">
+        ☰
       </button>
 
-      <button class="nav-item nav-ball" data-page="challengesPage">
-        <span>🏀</span>
-      </button>
-
-      <button class="nav-item" data-page="leaderboardPage">
-        <span>♛</span>
-        <small>Ranks</small>
-      </button>
-
-      <button class="nav-item" data-page="profilePage">
-        <span>●</span>
-        <small>Profile</small>
-      </button>
-    </nav>
-
-    <!-- CHALLENGE MODAL -->
-    <div id="challengeModal" class="modal hidden">
-      <div class="modal-box">
-        <button class="close-modal" id="closeChallenge">×</button>
-
-        <p class="eyebrow">NEW CHALLENGE</p>
-        <h2 id="challengeOpponentName">Player</h2>
-
-        <div class="versus">
-          <div>
-            <div class="avatar">🏀</div>
-            <strong id="challengeYou">You</strong>
-          </div>
-
-          <span>VS</span>
-
-          <div>
-            <div class="avatar opponent-avatar">🏀</div>
-            <strong id="challengeOpponent">Opponent</strong>
-          </div>
-        </div>
-
-        <label>Game format</label>
-        <select id="gameFormat">
-          <option value="11">First to 11</option>
-          <option value="21">First to 21</option>
-          <option value="timed">Timed — 15 minutes</option>
-        </select>
-
-        <label>Location</label>
-        <input id="gameLocation" type="text" placeholder="Basketball court / location">
-
-        <label>Date</label>
-        <input id="gameDate" type="date">
-
-        <button id="sendChallenge" class="primary-button">
-          SEND CHALLENGE 🏀
-        </button>
-      </div>
     </div>
 
-    <!-- RESULT MODAL -->
-    <div id="resultModal" class="modal hidden">
-      <div class="modal-box">
-        <button class="close-modal" id="closeResult">×</button>
+  </header>
 
-        <p class="eyebrow">MATCH RESULT</p>
-        <h2 id="resultOpponentName">Game</h2>
 
-        <p class="result-help">
-          Enter the final real-life score.
+  <!-- ================= MAIN ================= -->
+
+  <main id="mainContent">
+
+
+    <!-- ================= HOME ================= -->
+
+    <section id="page-home" class="page active">
+
+      <div class="hero">
+
+        <div class="eyebrow">
+          REAL BASKETBALL RPG
+        </div>
+
+        <h1>
+          YOUR COURT.<br>
+          <span>YOUR GAME.</span>
+        </h1>
+
+        <p>
+          Meet real basketball players, challenge them to 1v1s,
+          play in real life and build your HOOPX player.
         </p>
 
-        <div class="score-inputs">
-          <div>
-            <label>You</label>
-            <input id="yourScore" type="number" min="0" max="999" value="11">
-          </div>
+        <div class="hero-actions">
 
-          <span>—</span>
+          <button
+            class="btn btn-primary btn-large"
+            id="heroCreateBtn">
+            Create your player →
+          </button>
 
-          <div>
-            <label>Opponent</label>
-            <input id="opponentScore" type="number" min="0" max="999" value="7">
-          </div>
+          <button
+            class="btn btn-ghost btn-large"
+            id="heroLoginBtn">
+            Log in
+          </button>
+
         </div>
 
-        <button id="submitResult" class="primary-button">
-          CONFIRM RESULT
-        </button>
+
+        <div class="hero-stats">
+
+          <div>
+            <strong>1V1</strong>
+            <span>Basketball only</span>
+          </div>
+
+          <div>
+            <strong>XP</strong>
+            <span>Level up</span>
+          </div>
+
+          <div>
+            <strong>🏆</strong>
+            <span>Track your run</span>
+          </div>
+
+        </div>
+
       </div>
+
+
+      <div class="section-heading">
+
+        <div>
+          <span class="eyebrow">HOW IT WORKS</span>
+
+          <h2>
+            Turn real games into progression.
+          </h2>
+        </div>
+
+      </div>
+
+
+      <div class="steps-grid">
+
+        <article class="info-card">
+
+          <div class="step-number">
+            01
+          </div>
+
+          <h3>
+            Create your player
+          </h3>
+
+          <p>
+            Build your HOOPX profile with your username,
+            location and basketball skills.
+          </p>
+
+        </article>
+
+
+        <article class="info-card">
+
+          <div class="step-number">
+            02
+          </div>
+
+          <h3>
+            Find hoopers
+          </h3>
+
+          <p>
+            Discover players around you and send a
+            basketball 1v1 challenge.
+          </p>
+
+        </article>
+
+
+        <article class="info-card">
+
+          <div class="step-number">
+            03
+          </div>
+
+          <h3>
+            Play for real
+          </h3>
+
+          <p>
+            Meet at the court, play the agreed game
+            and record the result.
+          </p>
+
+        </article>
+
+
+        <article class="info-card">
+
+          <div class="step-number">
+            04
+          </div>
+
+          <h3>
+            Level up
+          </h3>
+
+          <p>
+            Earn XP, improve your skills, build streaks
+            and climb the leaderboard.
+          </p>
+
+        </article>
+
+      </div>
+
+
+      <div class="join-banner">
+
+        <div>
+
+          <span class="eyebrow">
+            NO FAKE PLAYERS
+          </span>
+
+          <h2>
+            Everyone you see can be a real hooper.
+          </h2>
+
+          <p>
+            HOOPX starts empty. The community builds the court.
+          </p>
+
+        </div>
+
+        <button
+          class="btn btn-primary"
+          id="bannerCreateBtn">
+          Join HOOPX
+        </button>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ================= PLAYERS ================= -->
+
+    <section id="page-players" class="page">
+
+      <div class="page-title">
+
+        <span class="eyebrow">
+          THE COURT
+        </span>
+
+        <h1>
+          FIND PLAYERS
+        </h1>
+
+        <p>
+          Discover real HOOPX players and send a 1v1 challenge.
+        </p>
+
+      </div>
+
+
+      <div class="filters">
+
+        <input
+          id="playerSearch"
+          class="input"
+          type="search"
+          placeholder="Search username or location..."
+        >
+
+        <select
+          id="playerLevelFilter"
+          class="input">
+
+          <option value="all">
+            All levels
+          </option>
+
+          <option value="1-5">
+            Level 1–5
+          </option>
+
+          <option value="6-10">
+            Level 6–10
+          </option>
+
+          <option value="11+">
+            Level 11+
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div
+        id="playersList"
+        class="card-grid">
+      </div>
+
+    </section>
+
+
+
+    <!-- ================= CHALLENGES ================= -->
+
+    <section id="page-challenges" class="page">
+
+      <div class="page-title">
+
+        <span class="eyebrow">
+          1V1 BASKETBALL
+        </span>
+
+        <h1>
+          CHALLENGES
+        </h1>
+
+        <p>
+          Set up a real-life basketball match.
+        </p>
+
+      </div>
+
+
+      <div
+        id="challengeLoginPrompt"
+        class="empty-state hidden">
+
+        <div class="empty-icon">
+          ⚔️
+        </div>
+
+        <h2>
+          Sign in to challenge players
+        </h2>
+
+        <p>
+          Create a HOOPX account first.
+          Your challenges will then be saved to your player.
+        </p>
+
+        <button
+          class="btn btn-primary"
+          data-page="auth">
+          Create account
+        </button>
+
+      </div>
+
+
+      <div id="challengesContent">
+
+        <div class="subheading">
+
+          <h2>
+            Your challenges
+          </h2>
+
+          <button
+            id="newChallengeBtn"
+            class="btn btn-primary">
+            + New challenge
+          </button>
+
+        </div>
+
+
+        <div
+          id="challengesList"
+          class="stack-list">
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ================= PROFILE ================= -->
+
+    <section id="page-profile" class="page">
+
+
+      <div
+        id="profileLoggedOut"
+        class="empty-state">
+
+        <div class="empty-icon">
+          👤
+        </div>
+
+        <h2>
+          Your HOOPX player is waiting
+        </h2>
+
+        <p>
+          Create an account to build your profile,
+          track XP and record real games.
+        </p>
+
+        <button
+          class="btn btn-primary"
+          data-page="auth">
+          Create your player
+        </button>
+
+      </div>
+
+
+
+      <div
+        id="profileContent"
+        class="hidden">
+
+
+        <div class="profile-header card">
+
+          <div
+            id="profileAvatar"
+            class="avatar avatar-xl">
+            H
+          </div>
+
+          <div class="profile-main">
+
+            <span
+              id="profileUsername"
+              class="eyebrow">
+              @username
+            </span>
+
+            <h1 id="profileName">
+              Player
+            </h1>
+
+            <p id="profileLocation">
+              📍 Location
+            </p>
+
+          </div>
+
+
+          <button
+            id="editProfileBtn"
+            class="btn btn-ghost">
+            Edit profile
+          </button>
+
+        </div>
+
+
+
+        <div class="level-card card">
+
+          <div class="level-row">
+
+            <div>
+
+              <span class="eyebrow">
+                PLAYER LEVEL
+              </span>
+
+              <strong id="profileLevel">
+                LVL 1
+              </strong>
+
+            </div>
+
+            <div
+              class="xp-number"
+              id="profileXpText">
+              0 / 500 XP
+            </div>
+
+          </div>
+
+
+          <div class="xp-track">
+
+            <div
+              id="profileXpBar"
+              class="xp-fill">
+            </div>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="stats-grid">
+
+          <div class="stat-card">
+            <strong id="statWins">0</strong>
+            <span>Wins</span>
+          </div>
+
+          <div class="stat-card">
+            <strong id="statLosses">0</strong>
+            <span>Losses</span>
+          </div>
+
+          <div class="stat-card">
+            <strong id="statGames">0</strong>
+            <span>Games</span>
+          </div>
+
+          <div class="stat-card">
+            <strong id="statStreak">0</strong>
+            <span>Win streak</span>
+          </div>
+
+        </div>
+
+
+
+        <div class="section-heading compact">
+
+          <div>
+
+            <span class="eyebrow">
+              SKILLS
+            </span>
+
+            <h2>
+              Your game
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="skillsList"
+          class="skills-list">
+        </div>
+
+
+
+        <div class="section-heading compact">
+
+          <div>
+
+            <span class="eyebrow">
+              ACHIEVEMENTS
+            </span>
+
+            <h2>
+              Milestones
+            </h2>
+
+          </div>
+
+        </div>
+
+
+        <div
+          id="achievementsList"
+          class="achievements-grid">
+        </div>
+
+      </div>
+
+    </section>
+
+
+
+    <!-- ================= LEADERBOARD ================= -->
+
+    <section id="page-leaderboard" class="page">
+
+      <div class="page-title">
+
+        <span class="eyebrow">
+          THE RANKINGS
+        </span>
+
+        <h1>
+          LEADERBOARD
+        </h1>
+
+        <p>
+          Real HOOPX players ranked by XP.
+        </p>
+
+      </div>
+
+
+      <div
+        id="leaderboardList"
+        class="leaderboard">
+      </div>
+
+    </section>
+
+
+
+    <!-- ================= AUTH ================= -->
+
+    <section id="page-auth" class="page">
+
+      <div class="auth-wrap">
+
+
+        <div class="auth-intro">
+
+          <span class="eyebrow">
+            WELCOME TO HOOPX
+          </span>
+
+          <h1 id="authTitle">
+            CREATE YOUR PLAYER.
+          </h1>
+
+          <p id="authSubtitle">
+            Your account is your player.
+            Build your stats, meet hoopers and start your run.
+          </p>
+
+        </div>
+
+
+
+        <div class="auth-card card">
+
+
+          <div class="auth-tabs">
+
+            <button
+              id="signupTab"
+              class="auth-tab active">
+              Create account
+            </button>
+
+            <button
+              id="loginTab"
+              class="auth-tab">
+              Log in
+            </button>
+
+          </div>
+
+
+
+          <form id="authForm">
+
+
+            <div id="signupFields">
+
+              <label>
+                Display name
+
+                <input
+                  id="displayName"
+                  class="input"
+                  type="text"
+                  maxlength="30"
+                  placeholder="e.g. Jay"
+                  autocomplete="name"
+                >
+
+              </label>
+
+
+              <label>
+                Username
+
+                <input
+                  id="username"
+                  class="input"
+                  type="text"
+                  maxlength="20"
+                  placeholder="e.g. jayhoops"
+                  autocomplete="username"
+                >
+
+              </label>
+
+
+              <label>
+                Age
+
+                <input
+                  id="age"
+                  class="input"
+                  type="number"
+                  min="13"
+                  max="99"
+                  placeholder="15"
+                >
+
+              </label>
+
+
+              <label>
+                Location
+
+                <input
+                  id="location"
+                  class="input"
+                  type="text"
+                  maxlength="60"
+                  placeholder="e.g. Colombo"
+                >
+
+              </label>
+
+            </div>
+
+
+
+            <label>
+              Email
+
+              <input
+                id="email"
+                class="input"
+                type="email"
+                placeholder="you@example.com"
+                autocomplete="email"
+                required
+              >
+
+            </label>
+
+
+            <label>
+              Password
+
+              <input
+                id="password"
+                class="input"
+                type="password"
+                minlength="6"
+                placeholder="At least 6 characters"
+                autocomplete="new-password"
+                required
+              >
+
+            </label>
+
+
+            <label id="confirmPasswordLabel">
+
+              Confirm password
+
+              <input
+                id="confirmPassword"
+                class="input"
+                type="password"
+                minlength="6"
+                placeholder="Repeat your password"
+                autocomplete="new-password"
+              >
+
+            </label>
+
+
+            <button
+              id="authSubmit"
+              class="btn btn-primary btn-large full-width"
+              type="submit">
+              Create account
+            </button>
+
+          </form>
+
+
+          <p class="auth-note">
+            Prototype mode: account data is stored in this browser.
+            Connect Supabase later for real cross-device accounts.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+
+
+  <!-- ================= BOTTOM NAV ================= -->
+
+  <nav
+    class="bottom-nav"
+    id="bottomNav">
+
+    <button
+      data-page="home"
+      class="nav-item active">
+
+      <span>⌂</span>
+      <small>Home</small>
+
+    </button>
+
+
+    <button
+      data-page="players"
+      class="nav-item">
+
+      <span>🏀</span>
+      <small>Players</small>
+
+    </button>
+
+
+    <button
+      data-page="challenges"
+      class="nav-item">
+
+      <span>⚔</span>
+      <small>Challenges</small>
+
+    </button>
+
+
+    <button
+      data-page="profile"
+      class="nav-item">
+
+      <span>👤</span>
+      <small>Player</small>
+
+    </button>
+
+
+    <button
+      data-page="leaderboard"
+      class="nav-item">
+
+      <span>🏆</span>
+      <small>Ranks</small>
+
+    </button>
+
+  </nav>
+
+
+
+  <!-- ================= CHALLENGE MODAL ================= -->
+
+  <div
+    id="challengeModal"
+    class="modal hidden">
+
+    <div
+      class="modal-backdrop"
+      data-close-modal="challengeModal">
     </div>
 
-    <div id="toast" class="toast"></div>
+
+    <div class="modal-box">
+
+      <button
+        class="modal-close"
+        data-close-modal="challengeModal">
+        ×
+      </button>
+
+
+      <span class="eyebrow">
+        NEW 1V1
+      </span>
+
+      <h2>
+        SEND A CHALLENGE
+      </h2>
+
+
+      <form id="challengeForm">
+
+
+        <label>
+          Opponent
+
+          <select
+            id="challengeOpponent"
+            class="input"
+            required>
+          </select>
+
+        </label>
+
+
+        <label>
+          Game format
+
+          <select
+            id="challengeFormat"
+            class="input">
+
+            <option>
+              First to 11
+            </option>
+
+            <option>
+              First to 21
+            </option>
+
+            <option>
+              Timed — 10 minutes
+            </option>
+
+            <option>
+              Timed — 20 minutes
+            </option>
+
+          </select>
+
+        </label>
+
+
+        <label>
+          Court / location
+
+          <input
+            id="challengeLocation"
+            class="input"
+            type="text"
+            placeholder="e.g. Local outdoor court"
+            required
+          >
+
+        </label>
+
+
+        <label>
+          Date
+
+          <input
+            id="challengeDate"
+            class="input"
+            type="date"
+            required
+          >
+
+        </label>
+
+
+        <button
+          class="btn btn-primary full-width"
+          type="submit">
+          Send challenge
+        </button>
+
+      </form>
+
+    </div>
 
   </div>
 
-  <script src="app.js"></script>
+
+
+  <!-- ================= RESULT MODAL ================= -->
+
+  <div
+    id="resultModal"
+    class="modal hidden">
+
+    <div
+      class="modal-backdrop"
+      data-close-modal="resultModal">
+    </div>
+
+
+    <div class="modal-box">
+
+      <button
+        class="modal-close"
+        data-close-modal="resultModal">
+        ×
+      </button>
+
+
+      <span class="eyebrow">
+        GAME RESULT
+      </span>
+
+      <h2>
+        RECORD THE SCORE
+      </h2>
+
+      <p id="resultMatchText"></p>
+
+
+      <form id="resultForm">
+
+        <input
+          id="resultChallengeId"
+          type="hidden"
+        >
+
+
+        <div class="score-grid">
+
+          <label>
+            You
+
+            <input
+              id="yourScore"
+              class="input score-input"
+              type="number"
+              min="0"
+              required
+            >
+
+          </label>
+
+
+          <label>
+            Opponent
+
+            <input
+              id="opponentScore"
+              class="input score-input"
+              type="number"
+              min="0"
+              required
+            >
+
+          </label>
+
+        </div>
+
+
+        <button
+          class="btn btn-primary full-width"
+          type="submit">
+          Save result
+        </button>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+
+  <!-- ================= EDIT PROFILE ================= -->
+
+  <div
+    id="profileModal"
+    class="modal hidden">
+
+    <div
+      class="modal-backdrop"
+      data-close-modal="profileModal">
+    </div>
+
+
+    <div class="modal-box">
+
+      <button
+        class="modal-close"
+        data-close-modal="profileModal">
+        ×
+      </button>
+
+
+      <span class="eyebrow">
+        PLAYER SETTINGS
+      </span>
+
+      <h2>
+        EDIT PROFILE
+      </h2>
+
+
+      <form id="profileForm">
+
+
+        <label>
+          Display name
+
+          <input
+            id="editDisplayName"
+            class="input"
+            maxlength="30"
+            required
+          >
+
+        </label>
+
+
+        <label>
+          Location
+
+          <input
+            id="editLocation"
+            class="input"
+            maxlength="60"
+            required
+          >
+
+        </label>
+
+
+        <button
+          class="btn btn-primary full-width"
+          type="submit">
+          Save changes
+        </button>
+
+      </form>
+
+    </div>
+
+  </div>
+
+
+
+  <div
+    id="toast"
+    class="toast">
+  </div>
+
+</div>
+
+
+<script src="app.js"></script>
+
 </body>
 </html>
